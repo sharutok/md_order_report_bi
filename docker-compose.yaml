@@ -1,0 +1,11 @@
+version: '1.0'
+services:
+  report-order:
+    build: .
+    image: report-order
+    container_name: report-order
+
+    ports:
+      - "8787:8787"
+      - "1521:1521"
+    restart: unless-stopped
