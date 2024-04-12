@@ -1,5 +1,6 @@
 exports.approved_and_rejected_for_last_6_months = (_status_lookup, formattedMonthYearValues) => {
-  return `
+    console.log(_status_lookup, formattedMonthYearValues);
+    return `
     SELECT b.formatted_month_yr, COUNT(*)
   FROM (
     SELECT
@@ -20,35 +21,35 @@ exports.approved_and_rejected_for_last_6_months = (_status_lookup, formattedMont
 }
 
 exports.approved_and_rejected_region_wise = (list_of_distributor) => {
-  //   return `
-  //   SELECT count(*),a.status_lookup
-  // FROM (
-  //     SELECT
-  //         order_number,
-  //         distributor_id,
-  //         created_at,
-  //         order_type,
-  //         status_lookup,
-  //         TO_DATE(formatted_date, 'DD/MM/YYYY HH24:MI:SS') AS formatted_date_date_type
-  //     FROM (
-  //         SELECT
-  //             order_number,
-  //             distributor_id,
-  //             created_at,
-  //             order_type,
-  //             status_lookup,
-  //             TO_CHAR(TO_TIMESTAMP(created_at::double precision), 'DD/MM/YYYY HH24:MI:SS') AS formatted_date
-  //         FROM
-  //             orders o
-  //             where order_type='Trade EUB'
-  //             and status_lookup in ('Approved','Rejected')
-  //         ORDER BY
-  //             created_at asc
-  //     ) subquery_alias
-  // ) a
-  // WHERE  a.distributor_id in (${list_of_distributor.map(value => `'${value}'`).join(', ')})
-  // group by a.status_lookup`
-  return `
+    //   return `
+    //   SELECT count(*),a.status_lookup
+    // FROM (
+    //     SELECT
+    //         order_number,
+    //         distributor_id,
+    //         created_at,
+    //         order_type,
+    //         status_lookup,
+    //         TO_DATE(formatted_date, 'DD/MM/YYYY HH24:MI:SS') AS formatted_date_date_type
+    //     FROM (
+    //         SELECT
+    //             order_number,
+    //             distributor_id,
+    //             created_at,
+    //             order_type,
+    //             status_lookup,
+    //             TO_CHAR(TO_TIMESTAMP(created_at::double precision), 'DD/MM/YYYY HH24:MI:SS') AS formatted_date
+    //         FROM
+    //             orders o
+    //             where order_type='Trade EUB'
+    //             and status_lookup in ('Approved','Rejected')
+    //         ORDER BY
+    //             created_at asc
+    //     ) subquery_alias
+    // ) a
+    // WHERE  a.distributor_id in (${list_of_distributor.map(value => `'${value}'`).join(', ')})
+    // group by a.status_lookup`
+    return `
 SELECT
     ab.*,
     round(ab.approved_count::decimal/(ab.approved_count::decimal + ab.rejected_count::decimal),2 )as approved_ratio,

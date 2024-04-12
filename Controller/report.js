@@ -6,42 +6,70 @@ const _month = require("../utils")
 const { approved_and_rejected_for_last_6_months, approved_and_rejected_region_wise } = require("../queries/pg-queries")
 const { performance } = require("perf_hooks");
 const fs = require('fs');
+
+const report_dates = {
+    START_DATE: "01-01-2024",
+    FOR_LAST_HOW_MANY_MONTHS: "6"
+}
+
+let past_six = []
+Array.from(Array(Number(report_dates.FOR_LAST_HOW_MANY_MONTHS) || 6).keys()).map(async (z) => {
+    const start_date = `${moment(report_dates.START_DATE, "DD-MM-YYYY").subtract(z, "months").format("YYYY-MM-")}01`
+    const end_date = `${moment(report_dates.START_DATE, "DD-MM-YYYY").subtract(z, "months").format("YYYY-MM-")}${_month[moment(report_dates.START_DATE, "DD-MM-YYYY").subtract(z, "months").format("MM")]}`
+    past_six.push({ "start_date": start_date, "end_date": end_date });
+});
+
+
+const logic_dates = {
+    start_date: past_six[past_six.length - 1]?.['start_date'],
+    end_date: past_six[0]?.['end_date'],
+
+}
+console.log(logic_dates);
 exports.collect_data_from_oracle = async (req, res) => {
     let data1 = []
     let data2 = []
     let data3 = []
 
+
     try {
         // for all distributors
         await Promise.all(["", "North", "South", "West", "East", "Central"].map(async (val) => {
-            const a_data = await NORMAL_ORACLE_MASTER_PROD(sales_data_for_all_and_different_region_all_distributors(val))
+            const a_data = await NORMAL_ORACLE_MASTER_PROD(sales_data_for_all_and_different_region_all_distributors(logic_dates, val))
             data1.push({
                 "region": val || "All",
                 "data": a_data[0]
             })
         }))
 
-        //for top 20 distributors
+
+
+        // for top 20 distributors
         await Promise.all(["", "North", "South", "West", "East", "Central"].map(async (val) => {
-            const b_data = await NORMAL_ORACLE_MASTER_PROD(sales_data_for_all_and_different_region_all_distributors_top_20_distributors(val))
+            const b_data = await NORMAL_ORACLE_MASTER_PROD(sales_data_for_all_and_different_region_all_distributors_top_20_distributors(logic_dates, val))
             data2.push({
                 "region": val || "All",
                 "data": b_data[0]
             })
         }))
 
+
         await Promise.all(past_six.map(async (data) => {
-            const c_data = await NORMAL_ORACLE_MASTER_PROD(sales_data_for_last_six_months(data.start_date, data.end_date))
+            const c_data = await NORMAL_ORACLE_MASTER_PROD(sales_data_for_last_six_months(data))
             data3.push({
                 "month": moment(data.start_date).format("MMMM YYYY"),
                 "data": c_data[0]
             })
         }))
 
-        let data = { "all_distributors": data1, "top_20": data2, "month_wise": data3 }
+        let data = {
+            "all_distributors": data1,
+            "top_20": data2,
+            "month_wise": data3
+        }
         return data
     } catch (error) {
-        console.log(error);
+        console.log("error");
     }
 }
 
@@ -51,6 +79,7 @@ exports.collect_data_from_pgsql = async (req, res) => {
     past_six.map(x => {
         formatted_past_six.push(moment(x.start_date, "YYYY-MM-DD").format("MM-YYYY"))
     })
+
     const approved_data = await pgConnect(approved_and_rejected_for_last_6_months('Approved', formatted_past_six))
     const rejected_data = await pgConnect(approved_and_rejected_for_last_6_months('Rejected', formatted_past_six))
 
@@ -82,31 +111,28 @@ exports.collect_data = async (req, res) => {
     try {
         const start_time = performance.now()
         console.log(`Started at ${moment().format("DD-MM-YYYY hh:mm:ss")}`);
-        const p_data = await this.collect_data_from_pgsql()
         const o_data = await this.collect_data_from_oracle()
+        const p_data = await this.collect_data_from_pgsql()
         const b_data = await this.collect_data_from_both()
-        const result = await Promise.all([o_data, p_data, b_data].map(x => {
+        const result = await Promise.all([
+            o_data,
+            p_data,
+            b_data
+        ].map(x => {
             return x
         }))
+        // res.json(result)
         const formatted_result = format_data(result)
         const end_time = performance.now()
         console.log(`took ${Math.round(end_time - start_time) / 1000}secs`);
-        // fs.writeFileSync('myjsonfile.json', JSON.stringify(formatted_result));
+        fs.writeFileSync("data.json", JSON.stringify(formatted_result))
         res.json(formatted_result)
-        // res.json(result)
 
     } catch (error) {
         console.log(error);
     }
 
 }
-
-let past_six = []
-Array.from(Array(6).keys()).map(async (z) => {
-    const start_date = `${moment().subtract(z, "months").format("YYYY-MM-")}01`
-    const end_date = `${moment().subtract(z, "months").format("YYYY-MM-")}${_month[moment().subtract(z, "months").format("MM")]}`
-    past_six.push({ "start_date": start_date, "end_date": end_date });
-});
 
 
 
@@ -160,3 +186,4 @@ function format_data(data) {
 
     return formatted_data
 }
+
