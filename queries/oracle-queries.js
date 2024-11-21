@@ -916,59 +916,132 @@ tabl
 }
 
 exports.get_customer_id_group_by_region = () => {
-	return `SELECT 
-tab1.REGION ,LISTAGG(tab1.ACCOUNT_NUMBER,',') WITHIN GROUP (ORDER BY tab1.ACCOUNT_NUMBER) AS LIST_OF_DISTRIBUTOR_ID
-from(
-SELECT DISTINCT ACCOUNT_NUMBER ,REGION FROM (select nvl(a.Account_Number,b.Account_Number)  ACCOUNT_NUMBER,nvl(a.region,b.region)REGION               
-from           
-(select distinct
-inv.CUST_ACCOUNT_NUMBER  Account_Number
-,inv.CUST_ACCOUNT_NAME   Customer_Name
-,sum(afid.LINE_AMOUNT)    amt
-,adsih.CUST_CLASSIFICATION_MEANING
-,rn.region
-from  apps.awl_falcon_invoice_header inv
-     ,awl_FALCON.AWL_FALCON_invoice_details afid
-     ,apps.wsh_new_deliveries  wnd
-     ,apps.awl_falcon_sales_indent_lines  afsil
-     ,apps.awl_falcon_sales_indent_headers adsih
-     ,( SELECT t.salesrep_number, decode(t.TERRITORY_CODE, 'S', 'South', 'E', 'East' , 'N', 'North' , 'W', 'West' , 'C', 'Central', t.TERRITORY_CODE) Region FROM ( SELECT rs.salesrep_number, ( SELECT decode(SEGMENT4, '41', 'C', '42', 'C', segment1) FROM apps.ra_territories WHERE TERRITORY_ID = rst.TERRITORY_ID) TERRITORY_CODE FROM apps.jtf_rs_salesreps rs, apps.JTF_RS_RESOURCE_EXTNS_VL RES, apps.hr_organization_units hou , apps.ra_salesrep_territories rst WHERE hou.organization_id = rs.org_id AND rs.salesrep_number <> '421' AND rs.resource_id = res.resource_id AND rs.SALESREP_ID = rst.SALESREP_ID AND (res.END_DATE_ACTIVE IS NULL OR res.END_DATE_ACTIVE >= sysdate-180) AND (rst.END_DATE_ACTIVE IS NULL OR rst.END_DATE_ACTIVE >= sysdate-180) ORDER BY rs.org_id DESC) t GROUP BY t.salesrep_number, t.TERRITORY_CODE) rn
-where 1=1
-AND   inv.invoice_id=afid.invoice_id
-AND   inv.header_id=afid.header_id
-AND   inv.invoice_id=wnd.delivery_id
-AND   afid.line_id=afsil.line_id
-AND   afid.header_id=afsil.header_id
-AND   afsil.sales_indent_id=adsih.sales_indent_id
-AND  adsih.CUST_CLASSIFICATION_MEANING IN ('Trade')
-AND  rn.salesrep_number=adsih.SALESREP_ID(+)
-group by inv.CUST_ACCOUNT_NUMBER  
-,inv.CUST_ACCOUNT_NAME   ,adsih.CUST_CLASSIFICATION_MEANING,rn.region) a,
-(select distinct
-inv.CUST_ACCOUNT_NUMBER  Account_Number
-,inv.CUST_ACCOUNT_NAME   Customer_Name
-,sum(afid.LINE_AMOUNT) AMOUNT    
-,adsih.CUST_CLASSIFICATION_MEANING
-,rn.region
-from  apps.awl_falcon_invoice_header inv
-     ,awl_FALCON.AWL_FALCON_invoice_details afid
-     ,apps.wsh_new_deliveries  wnd
-     ,apps.awl_falcon_sales_indent_lines  afsil
-     ,apps.awl_falcon_sales_indent_headers adsih
-     ,( SELECT t.salesrep_number, decode(t.TERRITORY_CODE, 'S', 'South', 'E', 'East' , 'N', 'North' , 'W', 'West' , 'C', 'Central', t.TERRITORY_CODE) Region FROM ( SELECT rs.salesrep_number, ( SELECT decode(SEGMENT4, '41', 'C', '42', 'C', segment1) FROM apps.ra_territories WHERE TERRITORY_ID = rst.TERRITORY_ID) TERRITORY_CODE FROM apps.jtf_rs_salesreps rs, apps.JTF_RS_RESOURCE_EXTNS_VL RES, apps.hr_organization_units hou , apps.ra_salesrep_territories rst WHERE hou.organization_id = rs.org_id AND rs.salesrep_number <> '421' AND rs.resource_id = res.resource_id AND rs.SALESREP_ID = rst.SALESREP_ID AND (res.END_DATE_ACTIVE IS NULL OR res.END_DATE_ACTIVE >= sysdate-180) AND (rst.END_DATE_ACTIVE IS NULL OR rst.END_DATE_ACTIVE >= sysdate-180) ORDER BY rs.org_id DESC) t GROUP BY t.salesrep_number, t.TERRITORY_CODE) rn
-where 1=1
-AND   inv.invoice_id=afid.invoice_id
-AND   inv.header_id=afid.header_id
-AND   inv.invoice_id=wnd.delivery_id
-AND   afid.line_id=afsil.line_id
-AND   afid.header_id=afsil.header_id
-AND   afsil.sales_indent_id=adsih.sales_indent_id
-AND  adsih.CUST_CLASSIFICATION_MEANING IN ('Trade EUB') 
-AND  rn.salesrep_number=adsih.SALESREP_ID
-group by inv.CUST_ACCOUNT_NUMBER  
-,inv.CUST_ACCOUNT_NAME   ,adsih.CUST_CLASSIFICATION_MEANING,rn.region) b
-where a.Account_Number=b.Account_Number
-Order BY a.Account_Number,b.Account_Number DESC) xyz) tab1 GROUP BY tab1.REGION`
+// 	return `SELECT
+// tab1.REGION ,LISTAGG(tab1.ACCOUNT_NUMBER,',') WITHIN GROUP (ORDER BY tab1.ACCOUNT_NUMBER) AS LIST_OF_DISTRIBUTOR_ID
+// from(
+// SELECT DISTINCT ACCOUNT_NUMBER ,REGION FROM (select nvl(a.Account_Number,b.Account_Number)  ACCOUNT_NUMBER,nvl(a.region,b.region)REGION
+// from
+// (select distinct
+// inv.CUST_ACCOUNT_NUMBER  Account_Number
+// ,inv.CUST_ACCOUNT_NAME   Customer_Name
+// ,sum(afid.LINE_AMOUNT)    amt
+// ,adsih.CUST_CLASSIFICATION_MEANING
+// ,rn.region
+// from  apps.awl_falcon_invoice_header inv
+//      ,awl_FALCON.AWL_FALCON_invoice_details afid
+//      ,apps.wsh_new_deliveries  wnd
+//      ,apps.awl_falcon_sales_indent_lines  afsil
+//      ,apps.awl_falcon_sales_indent_headers adsih
+//      ,( SELECT t.salesrep_number, decode(t.TERRITORY_CODE, 'S', 'South', 'E', 'East' , 'N', 'North' , 'W', 'West' , 'C', 'Central', t.TERRITORY_CODE) Region FROM ( SELECT rs.salesrep_number, ( SELECT decode(SEGMENT4, '41', 'C', '42', 'C', segment1) FROM apps.ra_territories WHERE TERRITORY_ID = rst.TERRITORY_ID) TERRITORY_CODE FROM apps.jtf_rs_salesreps rs, apps.JTF_RS_RESOURCE_EXTNS_VL RES, apps.hr_organization_units hou , apps.ra_salesrep_territories rst WHERE hou.organization_id = rs.org_id AND rs.salesrep_number <> '421' AND rs.resource_id = res.resource_id AND rs.SALESREP_ID = rst.SALESREP_ID AND (res.END_DATE_ACTIVE IS NULL OR res.END_DATE_ACTIVE >= sysdate-180) AND (rst.END_DATE_ACTIVE IS NULL OR rst.END_DATE_ACTIVE >= sysdate-180) ORDER BY rs.org_id DESC) t GROUP BY t.salesrep_number, t.TERRITORY_CODE) rn
+// where 1=1
+// AND   inv.invoice_id=afid.invoice_id
+// AND   inv.header_id=afid.header_id
+// AND   inv.invoice_id=wnd.delivery_id
+// AND   afid.line_id=afsil.line_id
+// AND   afid.header_id=afsil.header_id
+// AND   afsil.sales_indent_id=adsih.sales_indent_id
+// AND  adsih.CUST_CLASSIFICATION_MEANING IN ('Trade')
+// AND  rn.salesrep_number=adsih.SALESREP_ID(+)
+// group by inv.CUST_ACCOUNT_NUMBER
+// ,inv.CUST_ACCOUNT_NAME   ,adsih.CUST_CLASSIFICATION_MEANING,rn.region) a,
+// (select distinct
+// inv.CUST_ACCOUNT_NUMBER  Account_Number
+// ,inv.CUST_ACCOUNT_NAME   Customer_Name
+// ,sum(afid.LINE_AMOUNT) AMOUNT
+// ,adsih.CUST_CLASSIFICATION_MEANING
+// ,rn.region
+// from  apps.awl_falcon_invoice_header inv
+//      ,awl_FALCON.AWL_FALCON_invoice_details afid
+//      ,apps.wsh_new_deliveries  wnd
+//      ,apps.awl_falcon_sales_indent_lines  afsil
+//      ,apps.awl_falcon_sales_indent_headers adsih
+//      ,( SELECT t.salesrep_number, decode(t.TERRITORY_CODE, 'S', 'South', 'E', 'East' , 'N', 'North' , 'W', 'West' , 'C', 'Central', t.TERRITORY_CODE) Region FROM ( SELECT rs.salesrep_number, ( SELECT decode(SEGMENT4, '41', 'C', '42', 'C', segment1) FROM apps.ra_territories WHERE TERRITORY_ID = rst.TERRITORY_ID) TERRITORY_CODE FROM apps.jtf_rs_salesreps rs, apps.JTF_RS_RESOURCE_EXTNS_VL RES, apps.hr_organization_units hou , apps.ra_salesrep_territories rst WHERE hou.organization_id = rs.org_id AND rs.salesrep_number <> '421' AND rs.resource_id = res.resource_id AND rs.SALESREP_ID = rst.SALESREP_ID AND (res.END_DATE_ACTIVE IS NULL OR res.END_DATE_ACTIVE >= sysdate-180) AND (rst.END_DATE_ACTIVE IS NULL OR rst.END_DATE_ACTIVE >= sysdate-180) ORDER BY rs.org_id DESC) t GROUP BY t.salesrep_number, t.TERRITORY_CODE) rn
+// where 1=1
+// AND   inv.invoice_id=afid.invoice_id
+// AND   inv.header_id=afid.header_id
+// AND   inv.invoice_id=wnd.delivery_id
+// AND   afid.line_id=afsil.line_id
+// AND   afid.header_id=afsil.header_id
+// AND   afsil.sales_indent_id=adsih.sales_indent_id
+// AND  adsih.CUST_CLASSIFICATION_MEANING IN ('Trade EUB')
+// AND  rn.salesrep_number=adsih.SALESREP_ID
+// group by inv.CUST_ACCOUNT_NUMBER
+// ,inv.CUST_ACCOUNT_NAME   ,adsih.CUST_CLASSIFICATION_MEANING,rn.region) b
+// where a.Account_Number=b.Account_Number
+	// Order BY a.Account_Number,b.Account_Number DESC) xyz) tab1 GROUP BY tab1.REGION`
+	
+	return `
+	SELECT A.REGION,LISTAGG (A.ACCOUNT_NUMBER, ',')
+           WITHIN GROUP (ORDER BY A.ACCOUNT_NUMBER)    AS LIST_OF_DISTRIBUTOR_ID
+            FROM  (SELECT DISTINCT
+                                   INV.CUST_ACCOUNT_NUMBER     ACCOUNT_NUMBER,
+                                   INV.CUST_ACCOUNT_NAME       CUSTOMER_NAME,
+                                   SUM (AFID.LINE_AMOUNT)      AMOUNT,
+                                   ADSIH.CUST_CLASSIFICATION_MEANING,
+                                   RN.REGION
+                              FROM APPS.AWL_FALCON_INVOICE_HEADER     INV,
+                                   AWL_FALCON.AWL_FALCON_INVOICE_DETAILS AFID,
+                                   APPS.WSH_NEW_DELIVERIES            WND,
+                                   APPS.AWL_FALCON_SALES_INDENT_LINES AFSIL,
+                                   APPS.AWL_FALCON_SALES_INDENT_HEADERS ADSIH,
+                                   (  SELECT T.SALESREP_NUMBER,
+                                             DECODE (T.TERRITORY_CODE,
+                                                     'S', 'South',
+                                                     'E', 'East',
+                                                     'N', 'NORTH',
+                                                     'W', 'WEST',
+                                                     'C', 'CENTRAL',
+                                                     T.TERRITORY_CODE)    REGION
+                                        FROM (  SELECT RS.SALESREP_NUMBER,
+                                                       (SELECT DECODE (SEGMENT4,
+                                                                       '41', 'C',
+                                                                       '42', 'C',
+                                                                       SEGMENT1)
+                                                          FROM APPS.RA_TERRITORIES
+                                                         WHERE TERRITORY_ID =
+                                                               RST.TERRITORY_ID)    TERRITORY_CODE
+                                                  FROM APPS.JTF_RS_SALESREPS RS,
+                                                       APPS.JTF_RS_RESOURCE_EXTNS_VL
+                                                       RES,
+                                                       APPS.HR_ORGANIZATION_UNITS HOU,
+                                                       APPS.RA_SALESREP_TERRITORIES
+                                                       RST
+                                                 WHERE     HOU.ORGANIZATION_ID =
+                                                           RS.ORG_ID
+                                                       AND RS.SALESREP_NUMBER <>
+                                                           '421'
+                                                       AND RS.RESOURCE_ID =
+                                                           RES.RESOURCE_ID
+                                                       AND RS.SALESREP_ID =
+                                                           RST.SALESREP_ID
+                                                       AND (   RES.END_DATE_ACTIVE
+                                                                   IS NULL
+                                                            OR RES.END_DATE_ACTIVE >=
+                                                               SYSDATE - 180)
+                                                       AND (   RST.END_DATE_ACTIVE
+                                                                   IS NULL
+                                                            OR RST.END_DATE_ACTIVE >=
+                                                               SYSDATE - 180)
+                                              ORDER BY RS.ORG_ID DESC) T
+                                    GROUP BY T.SALESREP_NUMBER, T.TERRITORY_CODE)
+                                   RN
+                             WHERE     1 = 1
+                                   AND INV.INVOICE_ID = AFID.INVOICE_ID
+                                   AND INV.HEADER_ID = AFID.HEADER_ID
+                                   AND INV.INVOICE_ID = WND.DELIVERY_ID
+                                   AND AFID.LINE_ID = AFSIL.LINE_ID
+                                   AND AFID.HEADER_ID = AFSIL.HEADER_ID
+                                   AND AFSIL.SALES_INDENT_ID =
+                                       ADSIH.SALES_INDENT_ID
+                                   AND ADSIH.CUST_CLASSIFICATION_MEANING IN
+                                           ('Trade EUB')
+                                   AND RN.SALESREP_NUMBER = ADSIH.SALESREP_ID
+                          GROUP BY INV.CUST_ACCOUNT_NUMBER,
+                                   INV.CUST_ACCOUNT_NAME,
+                                   ADSIH.CUST_CLASSIFICATION_MEANING,
+                                   RN.REGION) A
+	GROUP BY A.REGION`
+	
 }
 
 

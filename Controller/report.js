@@ -8,7 +8,7 @@ const { performance } = require("perf_hooks");
 const fs = require('fs');
 
 const report_dates = {
-    START_DATE: "01-01-2024",
+    START_DATE: "31-10-2024",
     FOR_LAST_HOW_MANY_MONTHS: "6"
 }
 
@@ -19,12 +19,13 @@ Array.from(Array(Number(report_dates.FOR_LAST_HOW_MANY_MONTHS) || 6).keys()).map
     past_six.push({ "start_date": start_date, "end_date": end_date });
 });
 
-
+console.log(past_six);
+    
 const logic_dates = {
     start_date: past_six[past_six.length - 1]?.['start_date'],
     end_date: past_six[0]?.['end_date'],
-
 }
+
 console.log(logic_dates);
 exports.collect_data_from_oracle = async (req, res) => {
     let data1 = []
@@ -104,6 +105,7 @@ exports.collect_data_from_both = async (req, res) => {
             data: _data
         });
     }))
+
     return { result }
 }
 
@@ -146,43 +148,42 @@ function format_data(data) {
         "Average number of Trade EUB orders that are approved and rejected monthly": [],
         "Region List": [],
         "Data of ratio of approved :disapproved Tarde EUb orders – Regionwise": []
-
     }
 
     data[0]?.all_distributors.map(x => {
         if (x?.region === "All") {
-            formatted_data["Trade:Trade EUB Ratio – All India"] = x.data;
+            formatted_data["Trade:Trade EUB Ratio – All India"] = x?.data;
         }
         else {
-            formatted_data["Trade:Trade EUB Ratio – Regionwise"].push({ region: x.region, data: x.data });
+            formatted_data["Trade:Trade EUB Ratio – Regionwise"].push({ region: x?.region, data: x?.data });
         }
     })
 
     data[0]?.top_20.map(x => {
         if (x?.region !== "All") {
-            formatted_data["Last 6 months – Trade:Trade EUB Ratio – Top 20 Distributors from each Region"].push({ region: x.region, data: x.data });
+            formatted_data["Last 6 months – Trade:Trade EUB Ratio – Top 20 Distributors from each Region"].push({ region: x?.region, data: x?.data });
         }
     })
 
     formatted_data['Last months Trade Value: Trade EUb Value Monthly'] = data[0]?.month_wise
 
-    formatted_data['Past 6 Months'] = past_six.map(x => {
-        return moment(x.start_date).format("MMMM YYYY")
+    formatted_data['Past 6 Months'] = past_six?.map(x => {
+        return moment(x?.start_date).format("MMMM YYYY")
     })
 
-    data[1]?.approved_data.map(x => {
+    data[1]?.approved_data?.map(x => {
         if (x?.region !== "All") {
-            formatted_data["Last 6 months – Trade:Trade EUB Ratio – Top 20 Distributors from each Region"].push({ region: x.region, data: x.data });
+            formatted_data["Last 6 months – Trade:Trade EUB Ratio – Top 20 Distributors from each Region"].push({ region: x?.region, data: x?.data });
         }
     })
 
     formatted_data['Average number of Trade EUB orders that are approved and rejected monthly'] = [{
-        approved_data: data[1].approved_data,
-        rejected_data: data[1].rejected_data,
+        approved_data: data[1]?.approved_data,
+        rejected_data: data[1]?.rejected_data,
     }]
 
     formatted_data["Region List"] = ["North", "South", "West", "East", "Central"]
-    formatted_data["Data of ratio of approved :disapproved Tarde EUb orders – Regionwise"] = data[2].result
+    formatted_data["Data of ratio of approved :disapproved Tarde EUb orders – Regionwise"] = data[2]?.result
 
     return formatted_data
 }
