@@ -1,5 +1,4 @@
 exports.approved_and_rejected_for_last_6_months = (_status_lookup, formattedMonthYearValues) => {
-    console.log(_status_lookup, formattedMonthYearValues);
     return `
     SELECT b.formatted_month_yr, COUNT(*)
   FROM (
@@ -16,39 +15,11 @@ exports.approved_and_rejected_for_last_6_months = (_status_lookup, formattedMont
       created_at DESC
   ) b
   WHERE formatted_month_yr IN (${formattedMonthYearValues.map(value => `'${value}'`).join(', ')})
-  GROUP BY b.formatted_month_yr;
+  GROUP BY b.formatted_month_yr;                        
     `
 }
 
-exports.approved_and_rejected_region_wise = (list_of_distributor) => {
-    //   return `
-    //   SELECT count(*),a.status_lookup
-    // FROM (
-    //     SELECT
-    //         order_number,
-    //         distributor_id,
-    //         created_at,
-    //         order_type,
-    //         status_lookup,
-    //         TO_DATE(formatted_date, 'DD/MM/YYYY HH24:MI:SS') AS formatted_date_date_type
-    //     FROM (
-    //         SELECT
-    //             order_number,
-    //             distributor_id,
-    //             created_at,
-    //             order_type,
-    //             status_lookup,
-    //             TO_CHAR(TO_TIMESTAMP(created_at::double precision), 'DD/MM/YYYY HH24:MI:SS') AS formatted_date
-    //         FROM
-    //             orders o
-    //             where order_type='Trade EUB'
-    //             and status_lookup in ('Approved','Rejected')
-    //         ORDER BY
-    //             created_at asc
-    //     ) subquery_alias
-    // ) a
-    // WHERE  a.distributor_id in (${list_of_distributor.map(value => `'${value}'`).join(', ')})
-    // group by a.status_lookup`
+exports.approved_and_rejected_region_wise = (list_of_distributor, formattedMonthYearValues) => {
     return `
 SELECT
     ab.*,
@@ -72,7 +43,7 @@ FROM (
                 created_at,
                 order_type,
                 status_lookup,
-                TO_DATE(formatted_date, 'DD/MM/YYYY HH24:MI:SS') AS formatted_date_date_type
+                    TO_CHAR(TO_TIMESTAMP(created_at::double precision), 'MM-YYYY') AS formatted_month_yr
             FROM (
                 SELECT
                     order_number,
@@ -90,7 +61,9 @@ FROM (
                     created_at ASC
             ) subquery_alias
         ) a
-        WHERE  a.distributor_id in (${list_of_distributor.map(value => `'${value}'`).join(', ')})
+        where
+            a.distributor_id in (${list_of_distributor.map(value => `'${value}'`).join(', ')}) and 
+            a.formatted_month_yr IN (${formattedMonthYearValues.map(value => `'${value}'`).join(', ')})
         GROUP BY a.status_lookup
     ) a1
     CROSS JOIN (
@@ -104,7 +77,7 @@ FROM (
                 created_at,
                 order_type,
                 status_lookup,
-                TO_DATE(formatted_date, 'DD/MM/YYYY HH24:MI:SS') AS formatted_date_date_type
+     			      TO_CHAR(TO_TIMESTAMP(created_at::double precision), 'MM-YYYY') AS formatted_month_yr
             FROM (
                 SELECT
                     order_number,
@@ -122,10 +95,14 @@ FROM (
                     created_at ASC
             ) subquery_alias
         ) b
-        WHERE  b.distributor_id in (${list_of_distributor.map(value => `'${value}'`).join(', ')})
+        WHERE  
+        b.distributor_id in (${list_of_distributor.map(value => `'${value}'`).join(', ')}) and 
+        b.formatted_month_yr IN (${formattedMonthYearValues.map(value => `'${value}'`).join(', ')})
         GROUP BY b.status_lookup
     ) b1
-) ab;`
+) ab;
+`
 
 
 }
+

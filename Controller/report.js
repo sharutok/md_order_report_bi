@@ -6,11 +6,13 @@ const _month = require("../utils")
 const { approved_and_rejected_for_last_6_months, approved_and_rejected_region_wise } = require("../queries/pg-queries")
 const { performance } = require("perf_hooks");
 const fs = require('fs');
-
+const schedule = require("node-schedule");
 const report_dates = {
-    START_DATE: "31-10-2024",
+    // START_DATE: "31-10-2024",
+    START_DATE: moment().format("DD-MM-YYYY"),
     FOR_LAST_HOW_MANY_MONTHS: "6"
 }
+console.log(report_dates);
 
 let past_six = []
 Array.from(Array(Number(report_dates.FOR_LAST_HOW_MANY_MONTHS) || 6).keys()).map(async (z) => {
@@ -19,14 +21,12 @@ Array.from(Array(Number(report_dates.FOR_LAST_HOW_MANY_MONTHS) || 6).keys()).map
     past_six.push({ "start_date": start_date, "end_date": end_date });
 });
 
-console.log(past_six);
     
 const logic_dates = {
     start_date: past_six[past_six.length - 1]?.['start_date'],
     end_date: past_six[0]?.['end_date'],
 }
 
-console.log(logic_dates);
 exports.collect_data_from_oracle = async (req, res) => {
     let data1 = []
     let data2 = []
@@ -94,18 +94,25 @@ exports.collect_data_from_pgsql = async (req, res) => {
 
 exports.collect_data_from_both = async (req, res) => {
     const d_data = await NORMAL_ORACLE_MASTER_PROD(get_customer_id_group_by_region())
+
+    let formatted_past_six = []
+
+    past_six.map(x => {
+        formatted_past_six.push(moment(x.start_date, "YYYY-MM-DD").format("MM-YYYY"))
+    })    
+
     const currated_data = await Promise.all(d_data.map(x => {
         return ({ REGION: x.REGION, LIST_OF_DISTRIBUTOR_ID: x.LIST_OF_DISTRIBUTOR_ID.split(",") });
     }))
 
     const result = await Promise.all(currated_data.map(async (cd) => {
-        const _data = await pgConnect(approved_and_rejected_region_wise(formatted_past_six = cd.LIST_OF_DISTRIBUTOR_ID))
+        const _data = await pgConnect(approved_and_rejected_region_wise(cd.LIST_OF_DISTRIBUTOR_ID, formatted_past_six))
         return ({
             region: cd.REGION,
             data: _data
         });
     }))
-
+    
     return { result }
 }
 
@@ -123,7 +130,6 @@ exports.collect_data = async (req, res) => {
         ].map(x => {
             return x
         }))
-        // res.json(result)
         const formatted_result = format_data(result)
         const end_time = performance.now()
         console.log(`took ${Math.round(end_time - start_time) / 1000}secs`);
@@ -149,6 +155,8 @@ function format_data(data) {
         "Region List": [],
         "Data of ratio of approved :disapproved Tarde EUb orders – Regionwise": []
     }
+
+    console.log(JSON.stringify(data));
 
     data[0]?.all_distributors.map(x => {
         if (x?.region === "All") {
@@ -188,3 +196,8 @@ function format_data(data) {
     return formatted_data
 }
 
+schedule.scheduleJob("0 0 1 * *", () => {
+    
+});
+
+this.collect_data()
