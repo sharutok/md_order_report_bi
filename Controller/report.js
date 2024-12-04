@@ -12,8 +12,6 @@ const report_dates = {
     START_DATE: moment().format("DD-MM-YYYY"),
     FOR_LAST_HOW_MANY_MONTHS: "6"
 }
-console.log(report_dates);
-
 let past_six = []
 Array.from(Array(Number(report_dates.FOR_LAST_HOW_MANY_MONTHS) || 6).keys()).map(async (z) => {
     const start_date = `${moment(report_dates.START_DATE, "DD-MM-YYYY").subtract(z, "months").format("YYYY-MM-")}01`
@@ -21,7 +19,6 @@ Array.from(Array(Number(report_dates.FOR_LAST_HOW_MANY_MONTHS) || 6).keys()).map
     past_six.push({ "start_date": start_date, "end_date": end_date });
 });
 
-    
 const logic_dates = {
     start_date: past_six[past_six.length - 1]?.['start_date'],
     end_date: past_six[0]?.['end_date'],
@@ -142,8 +139,6 @@ exports.collect_data = async (req, res) => {
 
 }
 
-
-
 function format_data(data) {
     let formatted_data = {
         "Trade:Trade EUB Ratio – All India": [],
@@ -155,8 +150,6 @@ function format_data(data) {
         "Region List": [],
         "Data of ratio of approved :disapproved Tarde EUb orders – Regionwise": []
     }
-
-    console.log(JSON.stringify(data));
 
     data[0]?.all_distributors.map(x => {
         if (x?.region === "All") {
@@ -197,7 +190,5 @@ function format_data(data) {
 }
 
 schedule.scheduleJob("0 0 1 * *", () => {
-    
+    this.collect_data()
 });
-
-this.collect_data()
